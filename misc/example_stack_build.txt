@@ -1,0 +1,92 @@
+ **** Example on CUBE project
+ 
+ A. $ stack new rcube new-template
+Downloading template "new-template" to create project "rcube" in rcube\ ...
+
+The following parameters were needed by the template but not provided: author-email, author-name, category, copyright, github-username
+You can provide them in C:\Users\nkarag\AppData\Roaming\stack\config.yaml, like this:
+templates:
+  params:
+    author-email: value
+    author-name: value
+    category: value
+    copyright: value
+    github-username: value
+Or you can pass each one as parameters like this:
+stack new rcube new-template -p "author-email:value" -p "author-name:value" -p "category:value" -p "copyright:value" -p "github-username:value"
+
+Using cabal packages:
+- rcube\rcube.cabal
+
+Selecting the best among 7 snapshots...
+
+* Matches lts-5.5
+
+Selected resolver: lts-5.5
+Initialising configuration using resolver: lts-5.5
+Total number of user packages considered: 1
+Writing configuration to file: rcube\stack.yaml
+All done.
+
+ B. Edit rcube.cabal
+ * changed exposed-modules: from Lib to Rcube
+ * Added Rcube.hs and replaces src/Lib.src
+ * edited Main.hs
+ 
+ C. run stack build
+ 
+ $ stack build
+rcube-0.1.0.0: configure
+Configuring rcube-0.1.0.0...
+rcube-0.1.0.0: build
+Preprocessing library rcube-0.1.0.0...
+
+F:\office_backup\backup\myscripts\myhaskell\rcube\src\Rcube.hs:17:18:
+    Could not find module `Data.Map'
+    It is a member of the hidden package `containers-0.5.6.2@conta_2C3ZI8RgPO2LBMidXKTvIU'.
+  ==>  Perhaps you need to add `containers' to the build-depends in your .cabal file.
+    Use -v to see a list of the files searched for.
+
+F:\office_backup\backup\myscripts\myhaskell\rcube\src\Rcube.hs:18:8:
+    Could not find module `Data.Array'
+    It is a member of the hidden package `array-0.5.1.0@array_67iodizgJQIIxYVTp4emlA'.
+  ==> Perhaps you need to add `array' to the build-depends in your .cabal file.
+    Use -v to see a list of the files searched for.
+
+--  While building package rcube-0.1.0.0 using:
+      C:\Users\nkarag\AppData\Roaming\stack\setup-exe-cache\i386-windows\setup-Simple-Cabal-1.22.5.0-ghc-7.10.3.exe --builddir=.stack-work\dist\95439361 build lib:rcube exe:rcube-exe --ghc-options " -ddump-hi -ddump-to-file"
+    Process exited with code: ExitFailure 1
+	
+ D. Add dependency to Data.Map and Data.Array
+ 
+ add `containers' to the build-depends in your .cabal file
+ add `array' to the build-depends in your .cabal file
+ 
+ E. stack build
+ 
+ $ stack build
+rcube-0.1.0.0: build
+Preprocessing library rcube-0.1.0.0...
+In-place registering rcube-0.1.0.0...
+Preprocessing executable 'rcube-exe' for rcube-0.1.0.0...
+[1 of 1] Compiling Main             ( app\Main.hs, .stack-work\dist\95439361\build\rcube-exe\rcube-exe-tmp\Main.o )
+Linking .stack-work\dist\95439361\build\rcube-exe\rcube-exe.exe ...
+rcube-0.1.0.0: copy/register
+Installing library in
+F:\office_backup\backup\myscripts\myhaskell\rcube\.stack-work\install\810738c2\lib\i386-windows-ghc-7.10.3\rcube-0.1.0.0-GyDe5AvZUZ0JPBDzyAUF2X
+Installing executable(s) in
+F:\office_backup\backup\myscripts\myhaskell\rcube\.stack-work\install\810738c2\bin
+Registering rcube-0.1.0.0...
+
+ F. run program
+ 
+the executable (named rcube.exe -- see "executable" filed in cabal file) is located under :
+.stack-work\install\810738c2\bin>rcube.exe
+
+You can run it from there, or by issuing
+
+stack exec rcube.exe
+
+$ stack exec rcube.exe
+Give me Cube size: 2
+array (Position (1,1,1),Position (2,2,2)) [(Position (1,1,1),Cell (Just Blue,Just Red,Just Yellow)),(Position (1,1,2),Cell (Just Green,Just Red,Just Yellow)),(Position (1,2,1),Cell (Just Blue,Just Red,Just White)),(Position (1,2,2),Cell (Just Green,Just Red,Just White)),(Position (2,1,1),Cell (Just Blue,Just Orange,Just Yellow)),(Position (2,1,2),Cell (Just Green,Just Orange,Just Yellow)),(Position (2,2,1),Cell (Just Blue,Just Orange,Just White)),(Position (2,2,2),Cell (Just Green,Just Orange,Just White))]
