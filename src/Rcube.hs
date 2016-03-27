@@ -12,12 +12,22 @@ module Rcube
    isEdge,
    isCenter,
    isInternal,
+
+   Notation(..),
+
+   Plane (..),
+
+   Algorithm (..),
    
    Cube (..),
    getStartPos,
    getEndPos,
    createSolvedCubeCell,
-   createSolvedCube
+   createSolvedCube,
+   rotateList,
+   rotateListA,
+   rotateCubePlane,
+   rotateCubePlaneA
    
 ) where
 
@@ -153,7 +163,6 @@ isCenter n pos
    | pos `elem` [Position(x,y,z) | x <- [2..n-1], y <- [2..n-1], z <- [1,n]] = True
    | otherwise = False
 
-
 --
 -- isInternal 
 -- Returns True if a Position corresponds to an internal position in the Cube
@@ -183,7 +192,31 @@ allCombinationsStartEnd startPos endPos = map (Position) $ zip3 (take 4 [startX,
          endX = getX endPos
          endY = getY endPos
          endZ = getZ endPos
-       
+
+-- *************************
+-- * Notation
+--
+--    Rubiks Cube Notation
+--      http://ruwix.com/the-rubiks-cube/notation/
+-- *************************
+
+data Notation = U | D | L | R | F | B | M | E | S | U' | D' | L' | R' | F' | B' | M' | E' | S'
+             deriving  (Eq,  Ord,  Show,  Read,  Bounded,  Enum)
+
+-- *************************
+-- * Algorithm
+--
+-- *************************             
+
+type Algorithm = [Notation]
+
+-- *************************
+-- * Plane
+--
+-- *************************             
+
+data Plane = X | Y | Z
+            deriving (Eq, Ord, Show, Read, Bounded, Enum)       
 -- *************************
 -- * Cube
 -- *************************
@@ -291,20 +324,153 @@ createSolvedCube n = listArray (startPos, endPos) $ map (createSolvedCubeCell n)
       where startPos = Position(1,1,1)
             endPos = Position(n,n,n)
 
+------------
+-- rotateList
+--    Rotates the elements of a list clockwise by a single position
+--
+------------
+rotateList
+  :: [a]
+  -> [a]
+rotateList [] = []
+rotateList l = last l : init l
 
---createCube n = array (Position(1,1,1), Position(n,n,n)) [(p, c) | p <- range (Position(1,1,1), Position(n,n,n)), c <- [Just Yellow, Just Red, Just White, Just Orange, Just Blue, Just Green]]
+------------
+-- rotateListA
+--    Rotates the elements of a list anti-clockwise by a single position
+--
+------------
+rotateListA
+  :: [a]
+  -> [a]
+rotateListA [] = []
+rotateListA l = tail l ++ [head l] 
 
---Array Position(Int, Int, Int),Position(Int, Int, Int)) [(Position(Int, Int, Int), Cell(Maybe Color, Maybe Color, Maybe Color))]
---type Cube = array ((1,1,1), (N,N,N)) ([((x,y,z), C) | x <- [1..N], y <- [1..N], z <- [1..N], c <-  ])           
+------------
+-- rotateCubePlane
+--    Rotates the elements of a cube lying on a specific plane clockwise by a single position
+--    Example:
+--      rotate plane at y = 2 for a 2x2x2 cube c
+--      let cc = rotateCubePlane c [(Position(x,y,z), c!Position(x,y,z)) | x <- [1..2], y <- [2], z <- [1..2]] Y
+--
+--      rotate plane at x = 1 for a 2x2x2 cube c
+--      let cc = rotateCubePlane c [(Position(x,y,z), c!Position(x,y,z)) | x <- [1], y <- [1..2], z <- [1..2]] X
+--
+--      rotate plane at z = 2 for a 2x2x2 cube c
+--      let cc = rotateCubePlane c [(Position(x,y,z), c!Position(x,y,z)) | x <- [1..2], y <- [1..2], z <- [2]] Z
+-- 
+--  C2 ----- C3       C1 ----- C2           
+--  |        |  ===>  |        |
+--  |        |        |        |   
+--  C1 ----- C4       C4 ----- C3
+------------
+rotateCubePlane
+  :: Cube -- source cube
+  -> [(Position,Cell)]  -- target list of (Position,Cell) associations, corresponding to the plane to be rotated
+                        -- Typically, expressed via a list comprehension.
+  -> Plane              -- plane characterization
+  -> Cube -- new cube (rotated)t
+rotateCubePlane cb ls pl = cb // finalList  -- update the cube with the (//) array function
+   where
+      -- order the list of associations in a "cyclic" order instead of the row-major order of the array      
+      newList = case pl of  Y -> nub $ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getStartPos cb), z `elem` [getZ (getStartPos cb) .. getZ (getEndPos cb)]]
+                                 ++ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], z == getZ (getEndPos cb)]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getEndPos cb), z `elem`  [getZ (getStartPos cb) .. getZ (getEndPos cb)]]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], z == getZ (getStartPos cb)]
+                            X -> nub $ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y == getY (getStartPos cb), z `elem` [getZ (getStartPos cb) .. getZ (getEndPos cb)]]
+                                 ++ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y `elem` [getY (getStartPos cb) .. getY (getEndPos cb)], z == getZ (getEndPos cb)]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y == getY (getEndPos cb), z `elem`  [getZ (getStartPos cb) .. getZ (getEndPos cb)]]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y `elem` [getY (getStartPos cb) .. getY (getEndPos cb)], z == getZ (getStartPos cb)]                                
+                            Z -> nub $ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getEndPos cb), y `elem` [getY (getStartPos cb) .. getY (getEndPos cb)]]
+                                 ++ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getEndPos cb)]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getStartPos cb), y `elem`  [getY (getStartPos cb) .. getY (getEndPos cb)]]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getStartPos cb)]                                 
+      -- break the list in two: postiitions and cells
+      posList = map (fst) newList
+      cellList = map (snd) newList
+      -- rotate the cell list
+      newCellList = rotateList cellList
+      -- create final list of associations by zipping the two lists
+      finalList = zipWith (,) posList newCellList
 
---data Cube N = Cube  array ((1,1,1), (N,N,N)) ([((x,y,z), C) | x <- [1..N], y <- [1..N], z <- [1..N], c <- [Nothing .. Just Green])
 
---             (Map.Map(Position,Cell),Map.Map(Position,Cell),Map.Map(Position,Cell)), 
- --                 array(Map.Map(Position,Cell),Map.Map(Position,Cell),Map.Map(Position,Cell)), 
-   --               array(Map.Map(Position,Cell),Map.Map(Position,Cell),Map.Map(Position,Cell))) 
+------------
+-- rotateCubePlaneA
+--    Rotates the elements of a cube lying on a specific plane anti-clockwise by a single position
+--    Example:
+--      rotate plane at y = 2 for a 2x2x2 cube c
+--      let cc = rotateCubePlaneA c [(Position(x,y,z), c!Position(x,y,z)) | x <- [1..2], y <- [2], z <- [1..2]] Y
+--
+--      rotate plane at x = 1 for a 2x2x2 cube c
+--      let cc = rotateCubePlaneA c [(Position(x,y,z), c!Position(x,y,z)) | x <- [1], y <- [1..2], z <- [1..2]] X
+--
+--      rotate plane at z = 2 for a 2x2x2 cube c
+--      let cc = rotateCubePlaneA c [(Position(x,y,z), c!Position(x,y,z)) | x <- [1..2], y <- [1..2], z <- [2]] Z
+-- 
+--  C2 ----- C3       C3 ----- C4           
+--  |        |  ===>  |        |
+--  |        |        |        |   
+--  C1 ----- C4       C2 ----- C1
+------------
+rotateCubePlaneA
+  :: Cube -- source cube
+  -> [(Position,Cell)]  -- target list of (Position,Cell) associations, corresponding to the plane to be rotated
+                        -- Typically, expressed via a list comprehension.
+  -> Plane              -- plane characterization
+  -> Cube -- new cube (rotated)t
+rotateCubePlaneA cb ls pl = cb // finalList  -- update the cube with the (//) array function
+   where
+      -- order the list of associations in a "cyclic" order instead of the row-major order of the array      
+      newList = case pl of  Y -> nub $ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getStartPos cb), z `elem` [getZ (getStartPos cb) .. getZ (getEndPos cb)]]
+                                 ++ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], z == getZ (getEndPos cb)]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getEndPos cb), z `elem`  [getZ (getStartPos cb) .. getZ (getEndPos cb)]]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], z == getZ (getStartPos cb)]
+                            X -> nub $ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y == getY (getStartPos cb), z `elem` [getZ (getStartPos cb) .. getZ (getEndPos cb)]]
+                                 ++ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y `elem` [getY (getStartPos cb) .. getY (getEndPos cb)], z == getZ (getEndPos cb)]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y == getY (getEndPos cb), z `elem`  [getZ (getStartPos cb) .. getZ (getEndPos cb)]]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y `elem` [getY (getStartPos cb) .. getY (getEndPos cb)], z == getZ (getStartPos cb)]                                
+                            Z -> nub $ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getEndPos cb), y `elem` [getY (getStartPos cb) .. getY (getEndPos cb)]]
+                                 ++ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getEndPos cb)]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getStartPos cb), y `elem`  [getY (getStartPos cb) .. getY (getEndPos cb)]]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getStartPos cb)]                                 
+      -- break the list in two: postiitions and cells
+      posList = map (fst) newList
+      cellList = map (snd) newList
+      -- rotate the cell list
+      newCellList = rotateListA cellList
+      -- create final list of associations by zipping the two lists
+      finalList = zipWith (,) posList newCellList
 
-{--
-let a = array (Position(1,1,1), Position(10,10,10)) [(Position(x,y,z), Cell(a,b,c)) | x <- [1..10], y <- [1..10], z <- [1..10], a <- [Just Yellow , Just Green], b <- [Just Yellow , Just Green], c <- [Just Yellow , Just Green]]
-nikos-ghci> :t a
-a :: Array Position Cell
---}
+------------
+-- uMove
+--
+--    Accepts as input a cube and returns a new cube after applying the U move.
+--
+------------
+--uMove
+--  :: Cube
+--  -> Cube
+
+
+------------
+-- singleMove
+--
+--    Accepts as input a single cube move and a cube and returns a new cube after applying the move.
+--
+------------
+--singleMove
+--  :: Notation
+--  -> Cube
+--  -> Cube
+
+------------
+-- listMove
+--
+--    Accepts as input a list of cube moves and a cube and returns a new cube after applying the move.
+--
+------------
+--listMove
+--  :: [Notation]
+--  -> Cube
+--  -> Cube
+

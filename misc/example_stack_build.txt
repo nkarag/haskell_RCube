@@ -1,5 +1,7 @@
  **** Example on CUBE project
  
+ http://docs.haskellstack.org/en/stable/GUIDE/#hello-world-example
+ 
  A. $ stack new rcube new-template
 Downloading template "new-template" to create project "rcube" in rcube\ ...
 
