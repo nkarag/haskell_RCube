@@ -27,7 +27,9 @@ module Rcube
    rotateList,
    rotateListA,
    rotateCubePlane,
-   rotateCubePlaneA
+   rotateCubePlaneA,
+   uMove,
+   uPrMove
    
 ) where
 
@@ -442,15 +444,26 @@ rotateCubePlaneA cb ls pl = cb // finalList  -- update the cube with the (//) ar
       finalList = zipWith (,) posList newCellList
 
 ------------
--- uMove
+-- uMove (U)
 --
---    Accepts as input a cube and returns a new cube after applying the U move.
+--    Accepts as input a cube and returns a new cube after applying the U (Up) move.
 --
 ------------
---uMove
---  :: Cube
---  -> Cube
+uMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+uMove cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)], y <- [getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] Y
 
+------------
+-- uPrMove (U')
+--
+--    Accepts as input a cube and returns a new cube after applying the U' (Up Prime) move.
+--
+------------
+uPrMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+uPrMove cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)], y <- [getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] Y
 
 ------------
 -- singleMove
