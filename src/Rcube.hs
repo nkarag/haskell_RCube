@@ -1,6 +1,8 @@
 module Rcube
 (
    Color (..),
+   switchColor,
+
    Cell (..),
    
    Position (..),
@@ -22,14 +24,35 @@ module Rcube
    Cube (..),
    getStartPos,
    getEndPos,
+   cbSize,
    createSolvedCubeCell,
    createSolvedCube,
    rotateList,
    rotateListA,
+   rotateListN,
+   rotateListNA,
    rotateCubePlane,
    rotateCubePlaneA,
    uMove,
-   uPrMove
+   uPrMove,
+   dMove,
+   dPrMove,
+   lMove,
+   lPrMove,
+   rMove,
+   rPrMove,
+   fMove,
+   fPrMove,
+   bMove,
+   bPrMove,
+   mMove,
+   mPrMove,
+   eMove,
+   ePrMove,
+   sMove,
+   sPrMove,
+   singleMove,
+   listMove
    
 ) where
 
@@ -71,6 +94,21 @@ data Color = Blue | Orange | Green | Red | White | Yellow  --Yellow | Red | Whit
 -- *************************
 data Cell = Cell (Maybe Color, Maybe Color, Maybe Color)
             deriving  (Eq,  Ord,  Show,  Read)
+
+------------
+-- switchColor
+--    switches the colors of a Cell when a single move on the cube is performed.
+--    The colors that will be switched depends on the Plane that the rotation takes place
+--
+------------
+switchColor
+  :: Plane  -- input plane (that the rotation takes plane)
+  -> Cell   -- input Cell
+  -> Cell   -- output Cell with switched colors
+switchColor X (Cell(c1 , c2, c3))  = Cell(c3, c2, c1)
+switchColor Y (Cell(c1 , c2, c3))  = Cell(c2, c1, c3)
+switchColor Z (Cell (c1 , c2, c3))  = Cell(c1, c3, c2)
+            
 
 -- *************************
 -- * Position
@@ -254,6 +292,16 @@ getEndPos :: Cube -> Position
 getEndPos c = snd $ bounds c
 
 
+-------------
+-- cbSize
+--  Returns the size of a cube (e.g. for a 3x3x3 the size is 3)
+--
+-------------
+cbSize
+  :: Cube
+  -> Int
+cbSize cb = getX (getEndPos cb) - getX (getStartPos cb)  + 1
+
 ------------
 --  createSolvedCubeCell:
 --    Description: Receive as input a specific Position and the size of a Cube and return 
@@ -337,6 +385,7 @@ rotateList
 rotateList [] = []
 rotateList l = last l : init l
 
+
 ------------
 -- rotateListA
 --    Rotates the elements of a list anti-clockwise by a single position
@@ -347,6 +396,41 @@ rotateListA
   -> [a]
 rotateListA [] = []
 rotateListA l = tail l ++ [head l] 
+
+------------
+-- rotateListN
+--    Rotates the elements of a list clockwise by a N positions
+--
+------------
+rotateListN 
+  :: Integral b
+  =>  b  -- number of rotations
+  -> [a]  --  input list
+  -> [a]  -- rotated list  
+rotateListN _ [] = []
+rotateListN 0 l = l
+--rotateListN 1 l = last l : init l  -- !!!NOTE!!! If you uncomment this line, then you get an "Non-exhaustive patterns in function rotateListN" error when you call "rotateListN n [1,2,3,4]"" with n > 1
+rotateListN n l 
+          | n > 0 = rotateListN (n-1) (rotateList l) --(last l : init l)
+          | otherwise = []
+
+------------
+-- rotateListNA
+--    Rotates the elements of a list clockwise by a N positions Anti-Clockwise
+--
+------------
+rotateListNA 
+  :: Integral b
+  =>  b  -- number of rotations
+  -> [a]  --  input list
+  -> [a]  -- rotated list  
+rotateListNA _ [] = []
+rotateListNA 0 l = l
+--rotateListN 1 l = last l : init l  -- !!!NOTE!!! If you uncomment this line, then you get an "Non-exhaustive patterns in function rotateListN" error when you call "rotateListN n [1,2,3,4]"" with n > 1
+rotateListNA n l 
+          | n > 0 = rotateListNA (n-1) (rotateListA l)
+          | otherwise = []
+
 
 ------------
 -- rotateCubePlane
@@ -384,14 +468,14 @@ rotateCubePlane cb ls pl = cb // finalList  -- update the cube with the (//) arr
                                  ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y == getY (getEndPos cb), z `elem`  [getZ (getStartPos cb) .. getZ (getEndPos cb)]]
                                  ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y `elem` [getY (getStartPos cb) .. getY (getEndPos cb)], z == getZ (getStartPos cb)]                                
                             Z -> nub $ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getEndPos cb), y `elem` [getY (getStartPos cb) .. getY (getEndPos cb)]]
-                                 ++ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getEndPos cb)]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getEndPos cb)]
                                  ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getStartPos cb), y `elem`  [getY (getStartPos cb) .. getY (getEndPos cb)]]
-                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getStartPos cb)]                                 
-      -- break the list in two: postiitions and cells
+                                 ++ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getStartPos cb)]                                 
+      -- break the list in two: positions and cells
       posList = map (fst) newList
       cellList = map (snd) newList
       -- rotate the cell list
-      newCellList = rotateList cellList
+      newCellList = map (switchColor pl) $ rotateListN ((cbSize cb) - 1) cellList -- rotateList cellList
       -- create final list of associations by zipping the two lists
       finalList = zipWith (,) posList newCellList
 
@@ -432,14 +516,14 @@ rotateCubePlaneA cb ls pl = cb // finalList  -- update the cube with the (//) ar
                                  ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y == getY (getEndPos cb), z `elem`  [getZ (getStartPos cb) .. getZ (getEndPos cb)]]
                                  ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, y `elem` [getY (getStartPos cb) .. getY (getEndPos cb)], z == getZ (getStartPos cb)]                                
                             Z -> nub $ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getEndPos cb), y `elem` [getY (getStartPos cb) .. getY (getEndPos cb)]]
-                                 ++ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getEndPos cb)]
+                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getEndPos cb)]
                                  ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x == getX (getStartPos cb), y `elem`  [getY (getStartPos cb) .. getY (getEndPos cb)]]
-                                 ++ reverse [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getStartPos cb)]                                 
+                                 ++ [(Position(x,y,z),c) | (Position(x,y,z),c) <- ls, x `elem` [getX (getStartPos cb) .. getX (getEndPos cb)], y == getY (getStartPos cb)]                                 
       -- break the list in two: postiitions and cells
       posList = map (fst) newList
       cellList = map (snd) newList
       -- rotate the cell list
-      newCellList = rotateListA cellList
+      newCellList = map (switchColor pl) $ rotateListNA ((cbSize cb) - 1) cellList -- rotateListA cellList
       -- create final list of associations by zipping the two lists
       finalList = zipWith (,) posList newCellList
 
@@ -466,24 +550,245 @@ uPrMove
 uPrMove cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)], y <- [getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] Y
 
 ------------
--- singleMove
+-- dMove (D)
 --
---    Accepts as input a single cube move and a cube and returns a new cube after applying the move.
+--    Accepts as input a cube and returns a new cube after applying the D (Down) move.
 --
 ------------
---singleMove
---  :: Notation
---  -> Cube
---  -> Cube
+dMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+dMove cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)], y <- [getY (getStartPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] Y
+
+------------
+-- dPrMove (D')
+--
+--    Accepts as input a cube and returns a new cube after applying the D' (Down Prime) move.
+--
+------------
+dPrMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+dPrMove cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)], y <- [getY (getStartPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] Y
+
+------------
+-- lMove (L)
+--
+--    Accepts as input a cube and returns a new cube after applying the L (Left) move.
+--
+------------
+lMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+lMove cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] X
+
+------------
+-- lPrMove (L)
+--
+--    Accepts as input a cube and returns a new cube after applying the L' (Left Prime) move.
+--
+------------
+lPrMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+lPrMove cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] X
+
+
+------------
+-- rMove (R)
+--
+--    Accepts as input a cube and returns a new cube after applying the R (Right) move.
+--
+------------
+rMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+rMove cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] X
+
+------------
+-- rPrMove (R')
+--
+--    Accepts as input a cube and returns a new cube after applying the R' (Right Prime) move.
+--
+------------
+rPrMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+rPrMove cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] X
+
+
+------------
+-- fMove (F)
+--
+--    Accepts as input a cube and returns a new cube after applying the F (Front) move.
+--
+------------
+fMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+fMove cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getEndPos cb)]] Z
+
+------------
+-- fPrMove (F')
+--
+--    Accepts as input a cube and returns a new cube after applying the F' (Front Prime) move.
+--
+------------
+fPrMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+fPrMove cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getEndPos cb)]] Z
+
+------------
+-- bMove (B)
+--
+--    Accepts as input a cube and returns a new cube after applying the B (Back) move.
+--
+------------
+bMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+bMove cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)]] Z
+
+------------
+-- bPrMove (B')
+--
+--    Accepts as input a cube and returns a new cube after applying the B' (Back Prime) move.
+--
+------------
+bPrMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+bPrMove cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)]] Z
+
+
+------------
+-- mMove (M)
+--
+--    Accepts as input a cube and returns a new cube after applying the M (Middle) move.
+--
+--    NOTE
+--      If an even sized cube (e.g. a 2x2x2) is passed as input then an empyt cube is returned
+------------
+mMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+mMove cb =  if odd (cbSize cb) then  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [ceiling (fromIntegral(getX (getEndPos cb))/2)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] X
+            else array (Position(1,1,1), Position(-1,-1,-1)) [] -- return an empty cube, since there is not a middle layer
+
+
+------------
+-- mPrMove (M')
+--
+--    Accepts as input a cube and returns a new cube after applying the M' (Middle Prime) move.
+--
+--    NOTE
+--      If an even sized cube (e.g. a 2x2x2) is passed as input then an empyt cube is returned
+------------
+mPrMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+mPrMove cb =  if odd (cbSize cb) then  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [ceiling (fromIntegral(getX (getEndPos cb))/2)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] X
+              else array (Position(1,1,1), Position(-1,-1,-1)) [] -- return an empty cube, since there is not a middle layer
+
+------------
+-- eMove (E)
+--
+--    Accepts as input a cube and returns a new cube after applying the E (Equatorial) move.
+--
+--    NOTE
+--      If an even sized cube (e.g. a 2x2x2) is passed as input then an empyt cube is returned
+------------
+eMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+eMove cb =  if odd (cbSize cb) then  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [ceiling (fromIntegral(getY (getEndPos cb))/2)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] Y
+            else array (Position(1,1,1), Position(-1,-1,-1)) [] -- return an empty cube, since there is not a middle layer
+
+
+------------
+-- ePrMove (E')
+--
+--    Accepts as input a cube and returns a new cube after applying the E' (Equatorial Prime) move.
+--
+--    NOTE
+--      If an even sized cube (e.g. a 2x2x2) is passed as input then an empyt cube is returned
+------------
+ePrMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+ePrMove cb =  if odd (cbSize cb) then  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [ceiling (fromIntegral(getY (getEndPos cb))/2)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] Y
+            else array (Position(1,1,1), Position(-1,-1,-1)) [] -- return an empty cube, since there is not a middle layer
+
+
+------------
+-- sMove (S)
+--
+--    Accepts as input a cube and returns a new cube after applying the S (Standing) move.
+--
+--    NOTE
+--      If an even sized cube (e.g. a 2x2x2) is passed as input then an empyt cube is returned
+------------
+sMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+sMove cb =  if odd (cbSize cb) then  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [ceiling (fromIntegral(getZ (getEndPos cb))/2)]] Z
+            else array (Position(1,1,1), Position(-1,-1,-1)) [] -- return an empty cube, since there is not a middle layer
+
+
+------------
+-- sPrMove (S')
+--
+--    Accepts as input a cube and returns a new cube after applying the S' (Standing Prime) move.
+--
+--    NOTE
+--      If an even sized cube (e.g. a 2x2x2) is passed as input then an empyt cube is returned
+------------
+sPrMove
+  :: Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+sPrMove cb =  if odd (cbSize cb) then  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [ceiling (fromIntegral(getZ (getEndPos cb))/2)]] Z
+            else array (Position(1,1,1), Position(-1,-1,-1)) [] -- return an empty cube, since there is not a middle layer
+
+
+------------
+-- singleMove
+--
+--    Accepts as input a single cube move and a cube and returns a function that applies the corrsponding move.
+--
+------------
+singleMove
+  :: Notation
+  -> (Cube -> Cube) -- move funtion
+singleMove n = case n of  U   -> uMove
+                          U'  -> uPrMove
+                          D   -> dMove
+                          D'  -> dPrMove
+                          F   -> fMove
+                          F'  -> fPrMove
+                          B   -> bMove
+                          B'  -> bPrMove
+                          L   -> lMove
+                          L'  -> lPrMove
+                          R   -> rMove
+                          R'  -> rPrMove
+                          M   -> mMove
+                          M'  -> mPrMove
+                          E   -> eMove
+                          E'  -> ePrMove
+                          S   -> sMove
+                          S'  -> sPrMove
+
 
 ------------
 -- listMove
 --
---    Accepts as input a list of cube moves and a cube and returns a new cube after applying the move.
+--    Accepts as input a list of cube moves and a cube and returns a new cube after applying all the moves from left to right.
 --
 ------------
---listMove
---  :: [Notation]
---  -> Cube
---  -> Cube
-
+listMove
+  :: Algorithm
+  -> Cube
+  -> Cube
+listMove (m:[]) c = singleMove m c
+listMove (m:al) c = listMove al (singleMove m c)
