@@ -240,8 +240,16 @@ allCombinationsStartEnd startPos endPos = map (Position) $ zip3 (take 4 [startX,
 --      http://ruwix.com/the-rubiks-cube/notation/
 -- *************************
 
-data Notation = U | D | L | R | F | B | M | E | S | U' | D' | L' | R' | F' | B' | M' | E' | S'
-             deriving  (Eq,  Ord,  Show,  Read,  Bounded,  Enum)
+data Notation = U | D | L | R | F | B | M | E | S | U' | D' | L' | R' | F' | B' | M' | E' | S' | Ui Int | Di Int | Li Int | Ri Int | Fi Int | Bi Int | U'i Int | D'i Int | L'i Int | R'i Int | F'i Int | B'i Int
+             deriving  (Eq,  Ord,  Show,  Read)
+
+-----------------------------------
+-- Ui 1  -- for 4x4x4 and 5x5x5
+-- Ui 2  -- for 6x6x6 and 7x7x7
+-- Ui 3  -- for 8x8x8 and 9x9x9
+--
+-- 1 means the closest to U, 2 means the 2nd closest to U and so on before the E plane
+-----------------------------------
 
 -- *************************
 -- * Algorithm
@@ -750,6 +758,153 @@ sPrMove
 sPrMove cb =  if odd (cbSize cb) then  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [ceiling (fromIntegral(getZ (getEndPos cb))/2)]] Z
             else array (Position(1,1,1), Position(-1,-1,-1)) [] -- return an empty cube, since there is not a middle layer
 
+------------
+-- uMoveI (Ui)
+--
+--    Accepts as input a cube and returns a new cube after applying the Ui (Up on plane U i) move.
+--
+------------
+uMoveI
+  :: Int   -- 1 means the closest to U, 2 means the 2nd closest to U and so on before the E plane
+  -> Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+uMoveI i cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)], y <- [getY (getEndPos cb) - i], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] Y
+
+------------
+-- uPrMoveI (U'i)
+--
+--    Accepts as input a cube and returns a new cube after applying the U'i (Up Prime on plane U i) move.
+--
+------------
+uPrMoveI
+  :: Int   -- 1 means the closest to U, 2 means the 2nd closest to U and so on before the E plane
+  -> Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+uPrMoveI i cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)], y <- [getY (getEndPos cb) - i], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] Y
+
+
+------------
+-- dMoveI (Di)
+--
+--    Accepts as input a cube and returns a new cube after applying the Di (Down on plane D i) move.
+--
+------------
+dMoveI
+  :: Int   -- 1 means the closest to D, 2 means the 2nd closest to D and so on before the E plane
+  -> Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+dMoveI i cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)], y <- [getY (getStartPos cb) + i], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] Y
+
+------------
+-- dPrMoveI (D'i)
+--
+--    Accepts as input a cube and returns a new cube after applying the D'i (Down Prime on plane D i) move.
+--
+------------
+dPrMoveI
+  ::  Int
+  ->  Cube  -- input cube
+  ->  Cube  -- new cube after the application of the move
+dPrMoveI i cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)], y <- [getY (getStartPos cb) + i], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] Y
+
+
+------------
+-- lMoveI (Li)
+--
+--    Accepts as input a cube and returns a new cube after applying the Li (Left on plane L i) move.
+--
+------------
+lMoveI
+  :: Int 
+  -> Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+lMoveI i cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getEndPos cb) - i] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] X
+
+------------
+-- lPrMoveI (L'i)
+--
+--    Accepts as input a cube and returns a new cube after applying the L'i (Left Prime on the plane L i) move.
+--
+------------
+lPrMoveI
+  :: Int
+  -> Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+lPrMoveI i cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getEndPos cb) - i] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] X
+
+
+------------
+-- rMoveI (Ri)
+--
+--    Accepts as input a cube and returns a new cube after applying the Ri (Right on plane R i) move.
+--
+------------
+rMoveI
+  :: Int
+  -> Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+rMoveI i cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb) + i] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] X
+
+------------
+-- rPrMoveI (R'i)
+--
+--    Accepts as input a cube and returns a new cube after applying the R'i (Right Prime on plan R i) move.
+--
+------------
+rPrMoveI
+  :: Int
+  -> Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+rPrMoveI i cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb) + i] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb)..getZ (getEndPos cb)]] X
+
+------------
+-- fMoveI (Fi)
+--
+--    Accepts as input a cube and returns a new cube after applying the Fi (Front on plane F i) move.
+--
+------------
+fMoveI
+  :: Int
+  -> Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+fMoveI i cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getEndPos cb) - i]] Z
+
+------------
+-- fPrMoveI (F'i)
+--
+--    Accepts as input a cube and returns a new cube after applying the F'i (Front Prime on plane F i) move.
+--
+------------
+fPrMoveI
+  :: Int
+  -> Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+fPrMoveI i cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getEndPos cb) - i]] Z
+
+------------
+-- bMoveI (Bi)
+--
+--    Accepts as input a cube and returns a new cube after applying the Bi (Back on plane B i) move.
+--
+------------
+bMoveI
+  :: Int
+  -> Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+bMoveI i cb =  rotateCubePlane cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb) + i]] Z
+
+------------
+-- bPrMoveI (B'i)
+--
+--    Accepts as input a cube and returns a new cube after applying the B'i (Back Prime on plane B i) move.
+--
+------------
+bPrMoveI
+  :: Int
+  -> Cube  -- input cube
+  -> Cube  -- new cube after the application of the move
+bPrMoveI i cb =  rotateCubePlaneA cb [(Position(x,y,z), cb!Position(x,y,z)) | x <- [getX (getStartPos cb)..getX (getEndPos cb)] , y <- [getY (getStartPos cb)..getY (getEndPos cb)], z <- [getZ (getStartPos cb) + i]] Z
+
 
 ------------
 -- singleMove
@@ -778,6 +933,18 @@ singleMove n = case n of  U   -> uMove
                           E'  -> ePrMove
                           S   -> sMove
                           S'  -> sPrMove
+                          Ui i  -> uMoveI i 
+                          U'i i -> uPrMoveI i 
+                          Di i  -> dMoveI i 
+                          D'i i -> dPrMoveI i 
+                          Li i  -> lMoveI i 
+                          L'i i -> lPrMoveI i 
+                          Ri i  -> rMoveI i 
+                          R'i i -> rPrMoveI i 
+                          Fi i  -> fMoveI i 
+                          F'i i -> fPrMoveI i 
+                          Bi i  -> bMoveI i 
+                          B'i i -> bPrMoveI i 
 
 
 ------------
