@@ -20,11 +20,13 @@ module Rcube
    Plane (..),
 
    Algorithm (..),
+   strToAlg,
    
    Cube (..),
    getStartPos,
    getEndPos,
    cbSize,
+   isSolved,
    createSolvedCubeCell,
    createSolvedCube,
    rotateList,
@@ -59,6 +61,8 @@ module Rcube
 import qualified Data.Map as Map
 import Data.Array
 import Data.List
+import Data.String
+import Data.Char
 
 -- *************************
 -- * Color
@@ -243,6 +247,7 @@ allCombinationsStartEnd startPos endPos = map (Position) $ zip3 (take 4 [startX,
 data Notation = U | D | L | R | F | B | M | E | S | U' | D' | L' | R' | F' | B' | M' | E' | S' | Ui Int | Di Int | Li Int | Ri Int | Fi Int | Bi Int | U'i Int | D'i Int | L'i Int | R'i Int | F'i Int | B'i Int
              deriving  (Eq,  Ord,  Show,  Read)
 
+
 -----------------------------------
 -- Ui 1  -- for 4x4x4 and 5x5x5
 -- Ui 2  -- for 6x6x6 and 7x7x7
@@ -257,6 +262,94 @@ data Notation = U | D | L | R | F | B | M | E | S | U' | D' | L' | R' | F' | B' 
 -- *************************             
 
 type Algorithm = [Notation]
+
+--instance IsString Notation where
+--  fromString :: String -> Algorithm
+--  fromString [] = []
+--  fromString (x:('\'':(y:xs)))
+--        |  toUpper(x) == 'U' && not (isDigit(y))   = U':fromString(xs)
+--        |  toUpper(x) == 'D' && not (isDigit(y))   = D':fromString(xs)        
+--        |  toUpper(x) == 'F' && not (isDigit(y))   = F':fromString(xs)        
+--        |  toUpper(x) == 'B' && not (isDigit(y))   = B':fromString(xs)        
+--        |  toUpper(x) == 'L' && not (isDigit(y))   = L':fromString(xs)        
+--        |  toUpper(x) == 'R' && not (isDigit(y))   = R':fromString(xs)        
+--        |  toUpper(x) == 'M' && not (isDigit(y))   = M':fromString(xs)        
+--        |  toUpper(x) == 'E' && not (isDigit(y))   = E':fromString(xs)        
+--        |  toUpper(x) == 'S' && not (isDigit(y))   = S':fromString(xs)        
+--        |  toUpper(x) == 'U' && isDigit(y)       = (U'i digitToInt(y)):fromString(xs)        
+--        |  toUpper(x) == 'D' && isDigit(y)       = (D'i digitToInt(y)):fromString(xs)        
+--        |  toUpper(x) == 'L' && isDigit(y)       = (L'i digitToInt(y)):fromString(xs)
+--        |  toUpper(x) == 'R' && isDigit(y)       = (R'i digitToInt(y)):fromString(xs)
+--        |  toUpper(x) == 'F' && isDigit(y)       = (F'i digitToInt(y)):fromString(xs)
+--        |  toUpper(x) == 'B' && isDigit(y)       = (B'i digitToInt(y)):fromString(xs)
+--  fromString (x:(y:xs))  
+--        |  toUpper(x) == 'U'  && not (isDigit(y)) && y /= '\'' = U:fromString(y:xs)
+--        |  toUpper(x) == 'D'  && not (isDigit(y)) && y /= '\'' = D:fromString(y:xs)
+--        |  toUpper(x) == 'F'  && not (isDigit(y)) && y /= '\'' = F:fromString(y:xs)
+--        |  toUpper(x) == 'B'  && not (isDigit(y)) && y /= '\'' = B:fromString(y:xs)
+--        |  toUpper(x) == 'L'  && not (isDigit(y)) && y /= '\'' = L:fromString(y:xs)
+--        |  toUpper(x) == 'R'  && not (isDigit(y)) && y /= '\'' = R:fromString(y:xs)
+--        |  toUpper(x) == 'M'  && not (isDigit(y)) && y /= '\'' = M:fromString(y:xs)
+--        |  toUpper(x) == 'E'  && not (isDigit(y)) && y /= '\'' = E:fromString(y:xs)
+--        |  toUpper(x) == 'S'  && not (isDigit(y)) && y /= '\'' = S:fromString(y:xs)
+--        |  toUpper(x) == 'U'  && isDigit(y) = (Ui digitToInt(y)):fromString(xs)
+--        |  toUpper(x) == 'D'  && isDigit(y) = (Di digitToInt(y)):fromString(xs)
+--        |  toUpper(x) == 'L'  && isDigit(y) = (Li digitToInt(y)):fromString(xs)
+--        |  toUpper(x) == 'R'  && isDigit(y) = (Ri digitToInt(y)):fromString(xs)
+--        |  toUpper(x) == 'F'  && isDigit(y) = (Fi digitToInt(y)):fromString(xs)
+--        |  toUpper(x) == 'B'  && isDigit(y) = (Bi digitToInt(y)):fromString(xs)
+--        |  otherwise = []    
+
+------------
+-- strToAlg
+--    Convert a string to an Algorithm
+--
+------------
+strToAlg
+  :: String     -- input string
+  -> Algorithm  -- output algorithm
+strToAlg [] = []
+        -- U'i, D'i, ...
+strToAlg (x:('\'':(y:xs)))
+      |  toUpper(x) == 'U' && isDigit(y)         = (U'i $ digitToInt(y)):strToAlg(xs)        
+      |  toUpper(x) == 'D' && isDigit(y)         = (D'i $ digitToInt(y)):strToAlg(xs)        
+      |  toUpper(x) == 'L' && isDigit(y)         = (L'i $ digitToInt(y)):strToAlg(xs)
+      |  toUpper(x) == 'R' && isDigit(y)         = (R'i $ digitToInt(y)):strToAlg(xs)
+      |  toUpper(x) == 'F' && isDigit(y)         = (F'i $ digitToInt(y)):strToAlg(xs)
+      |  toUpper(x) == 'B' && isDigit(y)         = (B'i $ digitToInt(y)):strToAlg(xs)
+        -- Ui, Di, ...
+strToAlg (x:(y:xs))  
+      |  toUpper(x) == 'U'  && isDigit(y)        = (Ui $ digitToInt(y)):strToAlg(xs)
+      |  toUpper(x) == 'D'  && isDigit(y)        = (Di $ digitToInt(y)):strToAlg(xs)
+      |  toUpper(x) == 'L'  && isDigit(y)        = (Li $ digitToInt(y)):strToAlg(xs)
+      |  toUpper(x) == 'R'  && isDigit(y)        = (Ri $ digitToInt(y)):strToAlg(xs)
+      |  toUpper(x) == 'F'  && isDigit(y)        = (Fi $ digitToInt(y)):strToAlg(xs)
+      |  toUpper(x) == 'B'  && isDigit(y)        = (Bi $ digitToInt(y)):strToAlg(xs)
+        -- U', D', ...
+strToAlg (x:('\'':xs))
+      |  toUpper(x) == 'U' = U':strToAlg(xs)
+      |  toUpper(x) == 'D' = D':strToAlg(xs)        
+      |  toUpper(x) == 'F' = F':strToAlg(xs)        
+      |  toUpper(x) == 'B' = B':strToAlg(xs)        
+      |  toUpper(x) == 'L' = L':strToAlg(xs)        
+      |  toUpper(x) == 'R' = R':strToAlg(xs)        
+      |  toUpper(x) == 'M' = M':strToAlg(xs)        
+      |  toUpper(x) == 'E' = E':strToAlg(xs)        
+      |  toUpper(x) == 'S' = S':strToAlg(xs)        
+        -- U,D, ...
+strToAlg (x:xs)
+      |  toUpper(x) == 'U'  = U:strToAlg(xs)
+      |  toUpper(x) == 'D'  = D:strToAlg(xs)
+      |  toUpper(x) == 'F'  = F:strToAlg(xs)
+      |  toUpper(x) == 'B'  = B:strToAlg(xs)
+      |  toUpper(x) == 'L'  = L:strToAlg(xs)
+      |  toUpper(x) == 'R'  = R:strToAlg(xs)
+      |  toUpper(x) == 'M'  = M:strToAlg(xs)
+      |  toUpper(x) == 'E'  = E:strToAlg(xs)
+      |  toUpper(x) == 'S'  = S:strToAlg(xs)      
+      |  otherwise = []    
+
+
 
 -- *************************
 -- * Plane
@@ -309,6 +402,17 @@ cbSize
   :: Cube
   -> Int
 cbSize cb = getX (getEndPos cb) - getX (getStartPos cb)  + 1
+
+-------------
+-- isSolved
+--  Returns True if the input cube is a solved cube
+--
+-------------
+isSolved
+  :: Cube
+  -> Bool
+isSolved c = c == createSolvedCube (cbSize c)  
+
 
 ------------
 --  createSolvedCubeCell:

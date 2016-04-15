@@ -21,6 +21,8 @@ library
                     ,  containers 
                       -- Data.Array
                     ,  array  
+                      -- Data.String
+                    ,  stringable
   default-language:    Haskell2010
 
 executable rcube
